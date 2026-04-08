@@ -23,7 +23,7 @@ Every runaway branch started as "a small task." SCOPE forces a written contract 
 Write the goal as a single sentence. If it needs two sentences, the scope is too big — split first.
 
 ```
-Goal: Add curation feedback loop so PCR accumulates evidence from MEGA reflections.
+Goal: Add user notification preferences so the API respects per-user channel settings.
 ```
 
 **Checkpoint**: Can someone unfamiliar with the project understand what "done" looks like from this sentence alone?
@@ -34,9 +34,9 @@ List things that are adjacent but explicitly OUT of scope. Non-goals prevent sco
 
 ```
 Non-goals:
-- NOT changing the existing PCR search API contract
-- NOT adding a UI for feedback visualization
-- NOT optimizing feedback storage performance
+- NOT changing the existing notification delivery pipeline
+- NOT adding a UI for preference management
+- NOT optimizing notification throughput
 ```
 
 **Checkpoint**: For each non-goal, ask "would a reasonable person assume this IS in scope?" If yes, it belongs here.
@@ -50,10 +50,10 @@ Break the work into 3-7 slices. Each slice:
 
 ```
 Slices:
-1. CurationFeedback Pydantic model + validation → verify: model_validate round-trip
-2. POST /feedback endpoint → verify: curl returns 201
-3. Reflection pattern extraction → verify: unit test with known input
-4. Curation reference injection → verify: integration test shows injected context
+1. NotificationPreference Pydantic model + validation → verify: model_validate round-trip
+2. GET/PUT /preferences endpoint → verify: curl returns 200 with correct schema
+3. Preference-aware delivery logic → verify: unit test with channel filtering
+4. Integration: API → delivery pipeline → verify: E2E test with mock notification
 ```
 
 **Checkpoint**: If any slice has no verification method written next to it, it's not a slice — it's a wish.
@@ -83,7 +83,7 @@ Create `scope.md` in the working directory (or `.claude/scope.md` for cross-sess
 
 | Excuse | Counter |
 |--------|---------|
-| "It's small, I don't need a scope" | feat/curation-feedback started "small" and hit 52 commits. The cost of scope.md is 5 minutes. The cost of no scope is an unreverable branch. |
+| "It's small, I don't need a scope" | Every 50-commit branch started as "a quick feature." The cost of scope.md is 5 minutes. The cost of no scope is an unrevertable branch. |
 | "I'll figure out non-goals as I go" | By the time you realize something is out of scope mid-implementation, you've already built half of it. |
 | "Slicing takes longer than just coding" | Slicing takes 10 minutes. Debugging a 15-commit slice with no rollback point takes hours. |
 

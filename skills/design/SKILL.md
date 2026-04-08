@@ -27,15 +27,15 @@ For each component or pipeline stage, define:
 - Side effects: what external state changes (DB writes, API calls)
 
 ```
-reflect_pipeline:
-  in:  OptimizationResult (from MEGA build step)
-  out: CurationFeedback (to PCR /feedback endpoint)
-  side: writes curation-learnings.json to session dir
+notification_service:
+  in:  Event (from event bus)
+  out: DeliveryResult (to audit log)
+  side: sends notification via selected channel
 ```
 
 Draw the flow as a simple chain:
 ```
-[MEGA optimize] → OptimizationResult → [reflect] → ReflectionDraft → [LLM] → CurationFeedback → [PCR API]
+[Event Bus] → Event → [preference lookup] → UserPreference → [channel router] → DeliveryResult → [Audit Log]
 ```
 
 **Checkpoint**: Every arrow has a named type. No "passes data to" without specifying what data.
@@ -48,16 +48,16 @@ Write the core data models. Focus on:
 - Validation rules as `model_validator` or `Field` constraints
 
 ```python
-class CurationFeedback(BaseModel):
-    session_id: str
-    wisdom_ref: str  # W{N} format, resolved to hash before send
-    effectiveness: Literal["effective", "ineffective", "neutral"]
-    evidence: str  # one sentence, what happened when applied
+class UserPreference(BaseModel):
+    user_id: str
+    channels: list[Literal["email", "slack", "sms"]]
+    quiet_hours: tuple[int, int]  # (start_hour, end_hour) in UTC
 
     @model_validator(mode="after")
-    def validate_wisdom_ref_format(self) -> Self:
-        if not re.match(r"^W\d+$", self.wisdom_ref):
-            raise ValueError(f"wisdom_ref must be W{{N}} format, got {self.wisdom_ref}")
+    def validate_quiet_hours(self) -> Self:
+        start, end = self.quiet_hours
+        if not (0 <= start <= 23 and 0 <= end <= 23):
+            raise ValueError(f"quiet_hours must be 0-23, got ({start}, {end})")
         return self
 ```
 
@@ -72,15 +72,15 @@ Define the interface between components:
 
 ```
 boundaries:
-  meta_learner.py:
-    - calls: reflect_pipeline.build_draft()
-    - calls: pcr_client.send_feedback()
-    - DOES NOT call: wisdom search (that's curator's job)
+  notification_service.py:
+    - calls: preference_store.get(user_id)
+    - calls: channel_router.send(preference, event)
+    - DOES NOT call: event bus directly (receives events via handler)
 
-  reflect_pipeline.py:
-    - called by: meta_learner
-    - calls: LLM via litellm
-    - returns: CurationFeedback or raises ReflectionError
+  channel_router.py:
+    - called by: notification_service
+    - calls: email/slack/sms adapters
+    - returns: DeliveryResult or raises ChannelError
 ```
 
 **Checkpoint**: No circular dependencies. Every boundary has a clear owner.
@@ -94,12 +94,12 @@ When the feature involves LLM calls, specify:
 
 ```
 LLM integration:
-  prompt: reflection_prompt.md (takes: optimization_result, wisdom_context)
-  schema: CurationFeedback
+  prompt: classification_prompt.md (takes: event_payload, user_history)
+  schema: EventClassification
   validators:
-    - wisdom_ref format (W{N})
-    - effectiveness is valid Literal
-    - evidence is non-empty
+    - priority is valid Literal["urgent", "normal", "low"]
+    - category matches known categories
+    - summary is non-empty
   retry: automatic via query_structured (schema errors become reask prompts)
 ```
 
@@ -135,9 +135,9 @@ Create `design.md` in the working directory:
 
 | Excuse | Counter |
 |--------|---------|
-| "It's in my head, I'll just code it" | refactor/llm-output-safety-backup exists because the first implementation had .get() fallbacks everywhere. 7 commits to fix what design.md would have prevented. |
+| "It's in my head, I'll just code it" | Every "safety refactor" branch exists because the first implementation had .get() fallbacks everywhere. 7 commits to fix what design.md would have prevented. |
 | "The design will change anyway" | Yes. A changed design doc is a 5-line edit. A changed implementation is a rewrite. |
-| "I'm just adding a field" | Adding `PatternStep.gaps` required understanding the entire reflection pipeline flow. "Just a field" is never just a field. |
+| "I'm just adding a field" | Adding a single field often requires understanding the entire pipeline that consumes it. "Just a field" is never just a field. |
 | "Pydantic models are self-documenting" | Models show WHAT. Design.md shows WHY this shape and WHERE it flows. |
 
 ## Red Flags

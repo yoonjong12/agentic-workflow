@@ -104,7 +104,7 @@ git commit -m "refactor: harden <feature> — <what was fixed>"
 
 | Excuse | Counter |
 |--------|---------|
-| "Tests pass, it's fine" | Unit tests passed for wgdb-integration-v2 while .get() fallbacks silently swallowed bad LLM output. Passing tests prove the happy path, not safety. |
+| "Tests pass, it's fine" | Unit tests can pass while .get() fallbacks silently swallow bad LLM output in production. Passing tests prove the happy path, not safety. |
 | "I'll clean up in the next PR" | No you won't. Dead imports from this PR will live for months. Clean YOUR mess now. |
 | "LLM safety is overkill for this feature" | If the feature calls an LLM, the output is untrusted input. Period. One .get(key, "") turns a validation error (catchable) into wrong data (silent). |
 | "Integration tests take too long to write" | A 10-line integration test catches the bugs that 50 unit tests miss. The time ratio is inverted. |
