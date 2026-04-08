@@ -2,7 +2,7 @@
 name: harden
 description: "Tighten code quality and safety before PR. Trigger on: 'harden', 'harden this', 'pre-pr review', 'tighten up', 'check safety', 'LLM safety check', '하든', '단단하게', 'self review'"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-argument-hint: ""
+argument-hint: "<optional: focus area e.g. 'LLM safety' or 'integration test'>"
 ---
 
 # HARDEN — Tighten before PR
