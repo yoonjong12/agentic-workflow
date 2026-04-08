@@ -1,6 +1,6 @@
 {
   "name": "agentic-workflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "5-stage development workflow: SCOPE -> DESIGN -> BUILD -> HARDEN -> PR. Structured engineering stages for non-production developers whose endpoint is a pull request.",
   "author": {
     "name": "yoonjong12",
