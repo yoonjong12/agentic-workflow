@@ -8,10 +8,19 @@ SCOPE → DESIGN → BUILD → HARDEN → PR
 
 For developers whose endpoint is a pull request, not production deployment.
 
+## Quick Start
+
+```
+/workflow <task description>
+```
+
+Runs all 5 stages sequentially with approval gates between each. Individual stages (`/scope`, `/design`, etc.) are also callable standalone.
+
 ## Stages
 
 | Stage | Command | Purpose |
 |-------|---------|---------|
+| | `/workflow` | **Orchestrator** — runs all stages with approval gates |
 | **SCOPE** | `/scope` | Define goal, non-goals, and delivery slices |
 | **DESIGN** | `/design` | Schema-first design with data flow and boundaries |
 | **BUILD** | `/build` | Implement one slice at a time with per-slice verification |
