@@ -30,13 +30,8 @@ Runs all 5 stages sequentially with approval gates between each. Individual stag
 ## Install
 
 ```
-/plugin install agentic-workflow@yoonjong12
-```
-
-Or from a local path:
-
-```
-/plugin install /path/to/agentic-workflow
+/plugin marketplace add yoonjong12/agentic-workflow
+/plugin install agentic-workflow@agentic-workflow
 ```
 
 ## References
