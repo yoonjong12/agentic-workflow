@@ -29,12 +29,14 @@ Runs all 5 stages sequentially with approval gates between each. Individual stag
 
 ## Install
 
-```bash
-# Local plugin
-claude --plugin-dir /path/to/agentic-workflow
+```
+/plugin install agentic-workflow@yoonjong12
+```
 
-# Or add to project
-cp -r agentic-workflow/.claude-plugin /your/project/
+Or from a local path:
+
+```
+/plugin install /path/to/agentic-workflow
 ```
 
 ## References

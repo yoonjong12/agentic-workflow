@@ -1,0 +1,11 @@
+{
+  "name": "agentic-workflow",
+  "owner": { "name": "yoonjong12" },
+  "plugins": [
+    {
+      "name": "agentic-workflow",
+      "source": "./",
+      "description": "5-stage development workflow: SCOPE -> DESIGN -> BUILD -> HARDEN -> PR"
+    }
+  ]
+}
