@@ -9,19 +9,23 @@ argument-hint: "<slice number or description>"
 
 ## Overview
 
-BUILD executes one slice from scope.md at a time. Each slice is implemented, verified, and committed before the next begins. No batching, no "I'll test later."
+BUILD executes one slice from <session-dir>/scope.md at a time. Each slice is implemented, verified, and committed before the next begins. No batching, no "I'll test later."
 
 ## Entry Criteria
 
-- `scope.md` exists with slices and verification criteria
-- `design.md` exists with schemas and boundaries (or design is trivially simple)
+- `<session-dir>/scope.md` exists with slices and verification criteria
+- `<session-dir>/design.md` exists with schemas and boundaries (or design is trivially simple)
 - Current slice is identified
+
+## Session Resolution
+
+Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. If `.active` is missing, ask the user which session to use (list `.claude/workflows/*/`). Read `<session-dir>/scope.md` and `<session-dir>/design.md`; update the slice checkboxes in `<session-dir>/scope.md` as slices complete.
 
 ## Process
 
 ### Step 1: Select the slice
 
-Read scope.md. Pick the next unfinished slice. State it explicitly:
+Read <session-dir>/scope.md. Pick the next unfinished slice. State it explicitly:
 
 ```
 Building slice 2: GET/PUT /preferences endpoint → verify: curl returns 200 with correct schema
@@ -35,8 +39,8 @@ If the slice depends on a previous slice that isn't verified, stop. Go back and 
 
 Write code for THIS slice only. Rules:
 
-- **Follow design.md boundaries** — if the design says `channel_router.py` owns the transformation, put it there
-- **Use the schemas from design.md** — don't invent new models on the fly
+- **Follow <session-dir>/design.md boundaries** — if the design says `channel_router.py` owns the transformation, put it there
+- **Use the schemas from <session-dir>/design.md** — don't invent new models on the fly
 - **Touch only what this slice requires** — adjacent code improvements go in a separate commit or not at all
 - **No speculative code** — don't build "hooks" for the next slice
 
@@ -46,7 +50,7 @@ Commit cadence: 1-3 commits per slice. Each commit should compile/run.
 
 ### Step 3: Verify the slice
 
-Run the verification method defined in scope.md. This is non-negotiable.
+Run the verification method defined in <session-dir>/scope.md. This is non-negotiable.
 
 ```bash
 # slice 1: model round-trip
@@ -72,7 +76,7 @@ If verification fails: fix it in this slice. Do not move on.
 git add <specific files> && git commit -m "feat: <what this slice adds>"
 ```
 
-Update scope.md: mark the slice as done.
+Update <session-dir>/scope.md: mark the slice as done.
 
 ```markdown
 ## Slices
@@ -99,13 +103,13 @@ If all slices done → proceed to /harden.
 - More than 5 commits in a single slice → the slice is too big, split it
 - Touching files outside the current slice's boundary → scope creep
 - "I'll add the test later" → the test IS the verification, it can't be later
-- New Pydantic model not in design.md → stop, update design first
+- New Pydantic model not in <session-dir>/design.md → stop, update design first
 - Committing without running verification → the entire BUILD process is broken
 
 ## Exit Criteria
 
 All must be true:
-- [ ] Every slice in scope.md is marked [x]
+- [ ] Every slice in <session-dir>/scope.md is marked [x]
 - [ ] Every slice has documented verification output
 - [ ] Each slice has its own commit(s)
 - [ ] No slice exceeds 5 commits

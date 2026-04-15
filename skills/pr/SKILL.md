@@ -18,6 +18,10 @@ PR is the final gate. Read your own diff as a reviewer would, write a PR that ex
 - All changes committed
 - Branch is pushed to remote
 
+## Session Resolution
+
+Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. PR pulls its narrative material from `<session-dir>/scope.md` (Summary, Changes, Not included) and `<session-dir>/design.md` (Design decisions). If `.active` is missing, ask the user which session is being shipped.
+
 ## Process
 
 ### Step 1: Read the full diff
@@ -30,7 +34,7 @@ git diff main...HEAD
 Read every changed line. Not skim — read. You just spent hours in this code; a reviewer is seeing it for the first time.
 
 While reading, check:
-- [ ] Every changed line traces to a slice in scope.md
+- [ ] Every changed line traces to a slice in `<session-dir>/scope.md`
 - [ ] No debugging artifacts (print statements, commented code, TODO without ticket)
 - [ ] No files that shouldn't be committed (.env, local config, __pycache__)
 - [ ] Commit history tells a coherent story (slice-by-slice, not random)
@@ -69,7 +73,7 @@ Structure:
 - ...
 
 ## Design decisions
-<non-obvious choices and their reasons — from design.md>
+<non-obvious choices and their reasons — from <session-dir>/design.md>
 
 ## Test results
 <paste actual test output or summary>
@@ -78,7 +82,7 @@ Structure:
 - Manual: <what you verified>
 
 ## Not included (intentional)
-<from scope.md non-goals — helps reviewer not ask "why didn't you also...">
+<from <session-dir>/scope.md non-goals — helps reviewer not ask "why didn't you also...">
 ```
 
 **Checkpoint**: A reviewer reading only the PR body (not the code) understands the scope, the decisions, and what was tested.
@@ -127,6 +131,6 @@ All must be true:
 - [ ] PR body has Summary, Changes, Design decisions, Test results, Not included
 - [ ] Self-review checklist passed
 - [ ] PR created and URL obtained
-- [ ] scope.md and design.md are committed (or in .claude/ for persistence)
+- [ ] `<session-dir>/scope.md` and `<session-dir>/design.md` are committed (the session directory itself persists for reference)
 
 ## Done. PR submitted.

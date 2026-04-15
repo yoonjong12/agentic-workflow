@@ -13,9 +13,13 @@ Design is where you decide the shape of data and the boundaries between componen
 
 ## Entry Criteria
 
-- `scope.md` exists (or scope is clearly defined)
+- `<session-dir>/scope.md` exists (or scope is clearly defined)
 - Slices are identified from /scope
 - No implementation code written yet for this feature
+
+## Session Resolution
+
+Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. If `.active` is missing, list existing sessions and ask the user to attach or create one (same protocol as /scope). Read `<session-dir>/scope.md`; write `<session-dir>/design.md`.
 
 ## Process
 
@@ -107,7 +111,7 @@ LLM integration:
 
 ### Step 5: Write design.md
 
-Create `design.md` in the working directory:
+Create `<session-dir>/design.md` (resolved in Session Resolution above):
 
 ```markdown
 # Design: <feature name>
@@ -151,7 +155,7 @@ Create `design.md` in the working directory:
 ## Exit Criteria
 
 All must be true:
-- [ ] `design.md` exists with data flow, models, and boundaries
+- [ ] `<session-dir>/design.md` exists with data flow, models, and boundaries
 - [ ] Every data flow arrow has a named type
 - [ ] Pydantic models have validation rules (not just field types)
 - [ ] Component boundaries are defined with clear ownership

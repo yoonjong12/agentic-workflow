@@ -17,6 +17,10 @@ BUILD got the feature working. HARDEN makes it solid. This stage catches the cla
 - All tests pass
 - Code is committed (no uncommitted work mixed with hardening)
 
+## Session Resolution
+
+Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. If `.active` is missing, ask the user which session to use. HARDEN reads `<session-dir>/scope.md` and `<session-dir>/design.md` for the feature context; any hardening notes go into `<session-dir>/harden-log.md`.
+
 ## Process
 
 ### Step 1: Integration test — does the full chain work?
@@ -58,7 +62,7 @@ Checklist:
 - [ ] `model_validator` error messages are descriptive (they become reask prompts)
 - [ ] No manual retry loops — `query_structured` handles retry
 - [ ] `Field(ge=, le=)` or `Literal[...]` for all bounded values
-- [ ] No `Optional` without explicit justification in design.md
+- [ ] No `Optional` without explicit justification in `<session-dir>/design.md`
 
 **Checkpoint**: Every LLM output path has schema validation. Zero silent fallbacks.
 
@@ -112,7 +116,7 @@ git commit -m "refactor: harden <feature> — <what was fixed>"
 ## Red Flags
 
 - `.get()` with default on any LLM output → silent data loss
-- `Optional` field added during BUILD that wasn't in design.md → unplanned optionality
+- `Optional` field added during BUILD that wasn't in `<session-dir>/design.md` → unplanned optionality
 - Integration test doesn't exist for multi-component feature → gaps between components are untested
 - Hardening commit touches files outside the feature → scope creep in disguise
 - "No issues found" without running the checklist → you didn't actually check
