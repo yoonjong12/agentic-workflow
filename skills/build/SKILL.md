@@ -16,10 +16,31 @@ BUILD executes one slice from <session-dir>/scope.md at a time. Each slice is im
 - `<session-dir>/scope.md` exists with slices and verification criteria
 - `<session-dir>/design.md` exists with schemas and boundaries (or design is trivially simple)
 - Current slice is identified
+- **Design approval is fresh** (see Approval Gate below)
 
 ## Session Resolution
 
 Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. If `.active` is missing, ask the user which session to use (list `.claude/workflows/*/`). Read `<session-dir>/scope.md` and `<session-dir>/design.md`; update the slice checkboxes in `<session-dir>/scope.md` as slices complete.
+
+## Approval Gate (runs before Step 1)
+
+/design writes `<session-dir>/.design-approved` containing the sha256 of design.md at the moment the user approved. /build verifies the hash still matches before any code is written.
+
+```bash
+stored=$(cat "<session-dir>/.design-approved" 2>/dev/null)
+current=$(sha256sum "<session-dir>/design.md" 2>/dev/null | awk '{print $1}')
+if [ -z "$stored" ]; then
+    echo "BLOCKED: no .design-approved. Run /design and reply 'approved' to unlock."
+    exit 1
+fi
+if [ "$stored" != "$current" ]; then
+    echo "BLOCKED: design.md changed since approval (stale hash). Re-run /design to re-approve."
+    exit 1
+fi
+```
+
+- If blocked, stop. Do not edit any code. Direct the user back to /design.
+- Trivially simple tasks that skipped /design may bypass by creating `<session-dir>/.design-approved` with the literal content `SKIPPED` — but only after the user confirms the task does not warrant a design artifact.
 
 ## Process
 
@@ -69,6 +90,29 @@ pytest tests/integration/test_notification_flow.py -v
 If verification fails: fix it in this slice. Do not move on.
 
 **Checkpoint**: Verification output is visible (test pass, HTTP 201, no error). "It looks right" is not verification.
+
+### Step 3.5: Falsifiability test + auto-revert
+
+After slice verification passes, run the top-level falsifiability test declared in scope.md.
+
+```bash
+# Run the falsifiability test (path from scope.md)
+bash <session-dir>/falsify.sh
+ft_exit=$?
+```
+
+- **Early slices**: the test will still fail (expected — Acceptance needs full story). Record the failure signature (exit code, last failing assertion) without halting.
+- **Regression check**: the failure signature must not get WORSE than the pre-slice baseline. New errors, new failing assertions, or earlier exit → regression.
+- **On regression**: auto-revert the slice commit and stop.
+
+```bash
+git reset --hard HEAD~1   # revert slice commit
+# report to user: "slice N introduced regression in falsifiability test, reverted"
+```
+
+- **Final slice**: test must flip RED → GREEN. If still red after the Acceptance slice, the design missed something. Return to /design, do not claim completion.
+
+**Checkpoint**: Falsifiability signature is recorded per slice. Regression = revert, not "I'll fix it later."
 
 ### Step 4: Commit and mark slice complete
 

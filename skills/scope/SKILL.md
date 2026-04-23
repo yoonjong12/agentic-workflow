@@ -91,7 +91,29 @@ Slices:
 
 **Checkpoint**: If any slice has no verification method written next to it, it's not a slice — it's a wish.
 
-### Step 4: Write scope.md
+### Step 4: Falsifiability test — one executable check for the Acceptance
+
+Beyond per-slice verification, write a SINGLE executable test that encodes the Acceptance. It must:
+
+- **Fail today** (before any implementation). Run it now, confirm red.
+- **Pass only when the full Acceptance is met** — not partial progress, not "most slices done."
+- **Be cheap to run** (seconds, not minutes) so /build can execute it after every slice.
+- **Live at a stable path** — typically `<session-dir>/falsify.sh` or a dedicated test file.
+
+```bash
+# Example: <session-dir>/falsify.sh
+#!/usr/bin/env bash
+set -e
+# The Acceptance: "user receives notification only on their preferred channel"
+curl -sf http://localhost:8000/preferences/user123 | jq -e '.channels | length > 0'
+pytest tests/test_preference_delivery.py::test_channel_filter_end_to_end -x
+```
+
+**Why this is separate from slice verification**: Slice-level checks confirm "I coded slice N correctly." The falsifiability test confirms "the whole story produced the user-visible outcome." Slices can all be green while the test stays red — that's a design gap, caught early.
+
+**Checkpoint**: Run the falsifiability test NOW. It must fail. If it passes, either the feature already exists (task is done, stop) or the test is wrong (too weak — tighten it).
+
+### Step 5: Write scope.md
 
 Create `<session-dir>/scope.md` (resolved in Session Resolution above):
 
@@ -111,6 +133,12 @@ Create `<session-dir>/scope.md` (resolved in Session Resolution above):
 1. <slice> → verify: <how>
 2. ...
 N. Acceptance verification → verify: <perform the Acceptance scenario>
+
+## Falsifiability Test
+- Path: `<session-dir>/falsify.sh` (or test file)
+- Runs in: <seconds>
+- Baseline (before implementation): RED (fails)
+- Target (on completion): GREEN
 
 ## Open questions
 - <anything unresolved>
@@ -145,5 +173,6 @@ All must be true:
 - [ ] Every slice has a verification method
 - [ ] No slice exceeds 5 estimated commits
 - [ ] Open questions section exists (even if empty)
+- [ ] Falsifiability test exists at a stable path and FAILS today (baseline red confirmed)
 
 ## Next → /design

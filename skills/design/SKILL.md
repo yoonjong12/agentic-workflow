@@ -23,6 +23,20 @@ Read `.claude/workflows/.active` → `<session-dir> = .claude/workflows/<id>/`. 
 
 ## Process
 
+### Step 0: Anchor — define the target state from Acceptance
+
+Before reading any code, establish what "done" looks like:
+
+1. Read `<session-dir>/scope.md` — the Acceptance is the target state.
+2. Collect references that inform the target: design docs, specs, API contracts, user requirements.
+3. Define the target state in concrete terms (expected outputs, expected behavior, expected data shapes).
+
+**References (design docs, specs) and existing code are BOTH inputs — neither is the target.** The Acceptance is the target. References inform it, code reveals the current gap.
+
+**Anti-pattern**: Reading existing code first → designing "current + small delta." This anchors to implementation instead of the goal.
+
+**Checkpoint**: Can you state the target state without referencing any source file or function name? If not, you're anchored to code.
+
 ### Step 1: Data flow — what goes in, what comes out
 
 For each component or pipeline stage, define:
@@ -67,7 +81,18 @@ class UserPreference(BaseModel):
 
 **Checkpoint**: Could another developer implement the feature using ONLY these models and the data flow diagram?
 
-### Step 3: Component boundaries — who calls whom
+### Step 3: Gap analysis — current state vs target state
+
+Now read the existing code. Compare with the target state from Step 0:
+- What already exists and matches the target?
+- What exists but diverges from the target?
+- What's missing entirely?
+
+Design only the changes needed to close the gap. Do not redesign what already works correctly.
+
+**Checkpoint**: Every item in your design traces to a gap. No "improvements" that aren't gaps.
+
+### Step 4: Component boundaries — who calls whom
 
 Define the interface between components:
 - Which module/function owns each transformation
@@ -89,7 +114,7 @@ boundaries:
 
 **Checkpoint**: No circular dependencies. Every boundary has a clear owner.
 
-### Step 4: LLM integration design (if applicable)
+### Step 5: LLM integration design (if applicable)
 
 When the feature involves LLM calls, specify:
 - Prompt → Schema mapping: which prompt produces which Pydantic model
@@ -109,12 +134,15 @@ LLM integration:
 
 **Checkpoint**: The schema validates everything the prompt might get wrong. The prompt only needs to be "good enough."
 
-### Step 5: Write design.md
+### Step 6: Write design.md
 
 Create `<session-dir>/design.md` (resolved in Session Resolution above):
 
 ```markdown
 # Design: <feature name>
+
+## Target State
+<what "done" looks like — from Acceptance, not from code>
 
 ## Data Flow
 <chain diagram>
@@ -122,11 +150,21 @@ Create `<session-dir>/design.md` (resolved in Session Resolution above):
 ## Models
 <Pydantic model definitions>
 
+## Gap Analysis
+<current vs target — what changes>
+
 ## Boundaries
 <component → responsibility mapping>
 
 ## LLM Integration (if applicable)
 <prompt → schema → validator mapping>
+
+## Change Class (per file)
+- `path/to/file.py`: **additive** | **destructive** — <one line why>
+- destructive changes must list the specific existing behavior being removed/replaced
+
+## Risks
+- <what could break, who notices, how to catch>
 
 ## Decisions
 - <decision>: <chosen option> because <reason>
@@ -134,6 +172,47 @@ Create `<session-dir>/design.md` (resolved in Session Resolution above):
 ## Deferred
 - <thing not designed now> — will address in <which slice>
 ```
+
+### Step 7: Scope coverage check
+
+The design must explain every slice in scope.md. Walk through each slice and verify:
+
+1. Read `<session-dir>/scope.md` — list every slice and the Acceptance criteria.
+2. For each slice, confirm the design answers:
+   - **What data** does this slice produce/consume? → must appear in Data Flow or Models
+   - **What component** owns this slice's logic? → must appear in Boundaries
+   - **What decisions** does this slice require? → must appear in Decisions or be self-evident from the design
+3. For the Acceptance scenario specifically: trace the full path through the design. Every step the user will perform must have a designed component behind it.
+
+Present the coverage matrix:
+
+```
+Slice 1: Domain model          → Models §Domain, §Benchmark ✓
+Slice 2: HF loader             → Data Flow §HF Dataset, Boundaries §datasets.py ✓
+Slice 3: PCR extraction        → LLM Integration §pcr_prompt, Models §PCRTriple ✓
+Slice 4: Seeder embedding      → ??? ✗ — design doesn't specify embedding source
+```
+
+If any slice has `✗`, stop. Add the missing design section before proceeding to /build.
+
+**Checkpoint**: Every scope slice maps to at least one design section. No slice requires improvisation during build.
+
+### Step 8: Approval Gate
+
+Design is a contract with the user. /build is blocked until the user explicitly approves THIS version of design.md.
+
+1. Present a summary of the design to the user and ask: **"Approve design.md? Reply 'approved' to unlock /build."**
+2. Only after the user replies literally `approved` (not "looks good", "ok", "sure"), record the hash of design.md:
+
+   ```bash
+   sha256sum "<session-dir>/design.md" | awk '{print $1}' > "<session-dir>/.design-approved"
+   ```
+
+3. If design.md changes after approval, /build will detect the hash mismatch and refuse to run. Re-run /design to re-approve.
+
+**Authenticity vs freshness**: This gate enforces *freshness* (design.md has not changed since approval). It does NOT enforce *authenticity* — the rule "only write the hash after user literally typed 'approved'" lives in this skill's prompt and is honored by the model, not cryptographically. Do not bypass by writing the hash yourself.
+
+**Gitignore**: `<session-dir>/.design-approved` is per-developer state. Ensure `.claude/workflows/*/.design-approved` is in `.gitignore` for the project.
 
 ## Rationalizations
 
@@ -151,6 +230,8 @@ Create `<session-dir>/design.md` (resolved in Session Resolution above):
 - No boundaries section → everything will end up in one god-module
 - LLM integration section missing when feature uses LLM → prompt/schema mismatch incoming
 - design.md references code that doesn't exist yet → you're implementing, not designing
+- Scope slice has no corresponding design section → will require ad-hoc decisions during build
+- Build starts with `✗` in coverage matrix → design incomplete, stop and fill gaps first
 
 ## Exit Criteria
 
@@ -161,6 +242,10 @@ All must be true:
 - [ ] Component boundaries are defined with clear ownership
 - [ ] If LLM involved: prompt→schema mapping documented
 - [ ] Decisions section records non-obvious choices with reasons
+- [ ] **Scope coverage**: every slice in scope.md maps to at least one design section (Step 7 passed)
+- [ ] Change Class declared per file (additive | destructive with justification)
+- [ ] Risks section lists concrete failure modes
+- [ ] User replied literally `approved` AND `<session-dir>/.design-approved` contains the current sha256 of design.md (Step 8 passed)
 
 ## References
 
